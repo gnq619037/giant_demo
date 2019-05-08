@@ -22,6 +22,9 @@ const Login = ({
       dispatch({ type: 'login/login', payload: values })
     })
   }
+  function showRegister () {
+    dispatch({ type: 'login/toRegister'})
+  }
   return(
     <div style={{paddingTop:'250px'}}>
       <div style={{width:'350px',height:'280px',margin:'0 auto',border:'2px solid #A0A0A0',borderRadius:'5px'}}>
@@ -49,8 +52,11 @@ const Login = ({
         </FormItem>
         <FormItem>
           {/* <a className="login-form-forgot" href="">忘记密码</a> */}
-          <Button onClick={handleOk} type="primary" loading={loading.effects.login} className="login-form-button" style={{float:'right'}}>
+          <Button onClick={handleOk} type="primary" loading={loading.effects.login} className="login-form-button" style={{float:'left'}}>
             登录
+          </Button>
+          <Button onClick={showRegister} type="primary" className="login-form-button" style={{float:'right'}}>
+            注册
           </Button>
         </FormItem>
       </Form>

@@ -1,10 +1,13 @@
-import { queryUser, deleteUser, updateUser,getLoginUser,loginOut } from '../services/user';
+import { queryUser, deleteUser, updateUser,getLoginUser,loginOut,findAllCity,addFriend } from '../services/user';
+import {getAllMsg} from "../services/message";
 import { routerRedux } from 'dva/router'
+import {showTip, showMsg} from "../services/app";
 
 export default {
   namespace: 'user',
   state:{
     users:[],
+    cities:[],
     selectedRowKeys: [],
     loading: true,
     visible:false,
@@ -12,20 +15,25 @@ export default {
     filteredInfo: null,
     sortedInfo: null,
     disabled:true,
-    loginUser:''
+    loginUser:'',
+    reload:true
   },
   subscriptions: {
     setupT ({ dispatch }) {
-      dispatch({ type: 'query'})
+      // const payload = {'pageNum':1,'pageSize':10}
+      // dispatch({ type: 'query', payload});
+      dispatch({ type: 'getAllCity'});
     },
     setup ({ dispatch, history, state }) {
       history.listen((location) => {
-        if (location.pathname === '/app') {
-          const payload = {'pageNum':1,'pageSize':10}
-          dispatch({
-            type: 'query',
-            payload,
-          })
+        if (location.pathname === '/user') {
+          // const payload = {'pageNum':1,'pageSize':10}
+          // dispatch({
+          //   type: 'query',
+          //   payload,
+          // })
+          const payload = {'userId': '1'}
+          dispatch({ type: 'getAllMsg', payload});
         }
       })
     },
@@ -47,9 +55,7 @@ export default {
         //   success, message, ...result
         // } = data
         console.log(data.result);
-        debugger
         if (data.success) {
-          debugger
           console.log(data.result);
           yield put({
             type: 'querySuccess',
@@ -58,53 +64,95 @@ export default {
             },
           })
         } else {
-          throw data.message
+          const result = {
+            tip: data.msg,
+            type: 'error',
+          };
+          yield call(showTip, result);
         }
       }
     },
     * loginOut ({
       payload,
     }, { call, put, select }) {
-      const data = yield call(loginOut)
-      debugger
-      if(data.username === ""){
+      const param = {'token':window.localStorage.getItem('Giant-Token')}
+      const data = yield call(loginOut, param);
+      if(data.success){
         yield put(routerRedux.push({
           pathname: '/login',
         }))
+      }
+    },
+    * getAllMsg ({
+                  payload,
+                }, { call, put, select }) {
+      const data = yield call(getAllMsg, payload);
+      if(data.success){
+        for(let i = 0; i < data.result.length; i ++){
+          // if(data.result[i].msgType === 1){
+            const result = {
+              tip: data.result[i].msgContent,
+              type: data.result[i].msgType,
+            };
+            yield call(showMsg, result, 5);
+          // }
+        }
+      }
+    },
+    * addFriend ({
+                   payload,
+                 }, { call, put, select }) {
+      const data = yield call(addFriend, payload);
+      if(data.success){
+
+      }
+    },
+    * toPath ({payload,}, { call, put }) {
+      debugger
+      switch (payload) {
+        case '1':
+          yield put(routerRedux.push("/user"));
+          break;
+        case '2':
+          yield put(routerRedux.push("/relation"))
+          break;
+        default:
+          yield put(routerRedux.push("/login"))
+          break;
       }
     },
     * queryUser ({
       payload,
     }, { call, put }) {
       const data = yield call(queryUser, payload)
-      const {
-        success, message, ...users
-      } = data
+      // const {
+      //   success, message, ...users
+      // } = data
       if (data.success) {
         yield put({
           type: 'querySuccess',
           payload: {
-            users: users,
+            users: data.result,
           },
         })
       } else {
-        throw data.message
+        const result = {
+          tip: data.msg,
+          type: 'error',
+        };
+        yield call(showTip, result);
       }
     },
 
     * delete ({ payload }, { call, put, select }) {
-      const data = yield call(deleteUser, { userId: payload })
+      const data = yield call(deleteUser, payload)
       if (data.success) {
-        const data1 = yield call(queryUser, "")
-        debugger
-        const {
-          success, message, ...users
-        } = data1
+        const data1 = yield call(queryUser, {"pageSize": 10, "pageNum": 0})
         if (data1.success) {
           yield put({
             type: 'querySuccess',
             payload: {
-              users: users,
+              users: data1.result,
             },
           })
         }
@@ -119,7 +167,6 @@ export default {
       debugger
       if (data.success) {
         const data1 = yield call(queryUser, "")
-        debugger
         const {
           success, message, ...users
         } = data1
@@ -135,19 +182,66 @@ export default {
         throw data
       }
     },
+    * getAllCity ({ payload }, { call, put, select }) {
+      const data = yield call(findAllCity)
+      if (data.success) {
+        const cities = [];
+        for(let i = 0; i < data.result.length; i ++){
+          const children = [];
+          if(data.result[i].cityDTO.length !== 0) {
+            for(let j = 0; j < data.result[i].cityDTO.length; j ++) {
+              const area = [];
+              if(data.result[i].cityDTO[j].cityDTO.length !== 0){
+                for(let m = 0; m < data.result[i].cityDTO[j].cityDTO.length; m ++){
+                  area.push({
+                    'value': data.result[i].cityDTO[j].cityDTO[m].cityName,
+                    'label': data.result[i].cityDTO[j].cityDTO[m].cityName,
+                  })
+                }
+              }
+              children.push({
+                'value': data.result[i].cityDTO[j].cityName,
+                'label': data.result[i].cityDTO[j].cityName,
+                'children': area,
+              })
+            }
+
+          }
+          cities.push({
+            'value': data.result[i].cityName,
+            'label': data.result[i].cityName,
+            'children': children
+          })
+        }
+        yield put({
+          type: 'querySuccess',
+          payload: {
+            cities,
+          },
+        })
+      } else {
+
+      }
+    },
   },
 
   reducers: {
     updateTable (state, { payload }){
-      debugger
       return {...state,filteredInfo:payload.filteredInfo,sortedInfo: payload.sortedInfo}
     },
 
-    updateState (state, { payload }) {
-      return state.filter(user => user.id !== payload);
+    // updateState (state, { payload }) {
+    //   return state.filter(user => user.id !== payload);
+    // },
+    updateState(state, { payload }) {
+      return {
+        ...state,
+        ...payload,
+      };
     },
 
     showModal (state, { payload }) {
+      debugger
       const moduleUser = {userId:payload.userId,
         name:payload.userName,
         password:payload.password,
@@ -171,11 +265,16 @@ export default {
     //   return { ...state, visible: false }
     // },
     querySuccess (state, { payload }) {
-      const {users} = payload
+      // const {users} = payload
+      // console.log(users);
       return {
         ...state,
-        users,
-      }
+        ...payload,
+      };
+      // return {
+      //   ...state,
+      //   users,
+      // }
     },
   },
 };

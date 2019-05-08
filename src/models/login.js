@@ -1,5 +1,6 @@
 import { routerRedux } from 'dva/router';
 import { login } from '../services/login';
+import {showTip} from "../services/app";
 export default {
   namespace: 'login',
   state: {
@@ -12,7 +13,8 @@ export default {
       const data = yield call(login, payload);
       if (data.success) {
           window.localStorage.setItem('Giant-Token', data.token);
-          yield put(routerRedux.push("/app"))
+          window.localStorage.setItem('userName', payload.name);
+          yield put(routerRedux.push("/user"))
           // yield put({
           //   type: 'updateState',
           //   payload: {
@@ -20,8 +22,17 @@ export default {
           //   },
           // })
       } else {
-         throw data.message
+        const result = {
+          tip: data.msg,
+          type: 'error',
+        };
+        yield call(showTip, result);
       }
+    },
+    * toRegister ({
+      payload,
+    }, { call, put }) {
+      yield put(routerRedux.push("/register"))
     },
   },
   reducers:{

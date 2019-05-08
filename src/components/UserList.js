@@ -1,22 +1,46 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { InputNumber,Tooltip,Table, Popconfirm, Button, Modal, Form,Input,Select,Col,DatePicker } from 'antd';
+import AQAjaxTable from './DataTable/AQAjaxTable';
+import styles from '../routes/index.less';
+import {
+  InputNumber,
+  Tooltip,
+  Table,
+  Popconfirm,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Col,
+  DatePicker,
+  Cascader,
+  Icon,
+  Divider
+} from 'antd';
 import { connect } from 'dva';
 import moment from 'moment';
 const FormItem = Form.Item;
 const Option = Select.Option;
 const dateFormat = 'YYYY-MM-DD';
 const formItemLayout = {
-  labelCol: { span: 4 },
-  wrapperCol: { span: 8 },
+  labelCol: {
+    xs: { span: 24 },
+    sm: { span: 6 },
+  },
+  wrapperCol: {
+    xs: { span: 24 },
+    sm: { span: 14 },
+  },
 };
-const UserList = ({ onDelete, moduleUser, users, visible, dispatch, sortedInfo,filteredInfo,disabled,
+const UserList = ({ onDelete, moduleUser, users, cities, visible, dispatch, sortedInfo,filteredInfo,disabled,reload,
   form: {
   getFieldDecorator,
   validateFieldsAndScroll,
   getFieldValue,
   setFieldsValue
 }, }) => {
+
   const handleChange = (pagination, filters, sorter) => {
     dispatch({type: "user/updateTable", payload: {
       filteredInfo: filters,
@@ -101,45 +125,61 @@ const vailedPhone = (rule, value, callback) => {
  const handleCancel = (e) => {
     dispatch({type: "user/hideModal", payload: {visible: false}})
  }
+ const addFriend = (record) => {
+    debugger
+    const payload = {
+      'startUserGraph': {
+        'userName': window.localStorage.getItem('userName'),
+      },
+      'endUserGraph': {
+        'userName': record.username,
+      }
+    }
+   dispatch({ type: "user/addFriend", payload })
+ }
  sortedInfo = sortedInfo || {};
    filteredInfo = filteredInfo || {};
   const columns = [{
     key:'username',
-    title: '姓名',
+    title: '用户名',
     dataIndex: 'username',
-    width: 100,
+    width: 70,
   },
   {
     key:'nickName',
     title: '昵称',
     dataIndex: 'nickName',
-    width: 50,
+    width: 80,
   },{
-    key:'address',
-    title: '地址',
-    dataIndex: 'address',
-    width: 100,
-  },{
+      key:'telPhone',
+      title: '手机号',
+      dataIndex: 'telPhone',
+      width: 50,
+    },{
     key:'email',
     title: '邮箱',
     dataIndex: 'email',
-    width: 100,
-  }, {
+    width: 90,
+  },{
+      key:'address',
+      title: '地址',
+      dataIndex: 'address',
+      width: 120,
+    }, {
     key: 'operation',
     title: '操作',
     width: 150,
     render: (text, record) => {
       return (
-        <div>
-          <Tooltip placement="topLeft" title="修改操作">
-          <Button onClick={showModal} userid={record.id} username={record.username}>修改</Button>
-          </Tooltip>
-          <Tooltip placement="topLeft" title="删除操作">
-          <Popconfirm  placement="top" title="是否删除?" onConfirm={() => onDelete(record.id)}>
-            <Button>删除</Button>
+        <span>
+          <a onClick={showModal} userid={record.id} username={record.username}>修改</a>
+          <Divider type="vertical" />
+          <a onClick={e => addFriend(record, e)}>添加好友</a>
+          <Divider type="vertical" />
+          <Popconfirm  placement="top" title="是否删除?" onConfirm={() => onDelete(record.id)} okText="确定" cancelText="取消">
+            <a >删除</a>
           </Popconfirm>
-          </Tooltip>
-        </div>
+        </span>
       );
     },
   }];
@@ -155,108 +195,110 @@ const vailedPhone = (rule, value, callback) => {
 const onChange=(date, dateString)=> {
   console.log(date, dateString);
 }
+
   return (
     <div>
-      <Table
-        rowSelection={rowSelection}
-        dataSource={users}
+      <AQAjaxTable
         columns={columns}
-        rowKey={record => record.userId}
-        scroll={{ x: 1500, y: 550 }}
-        onChange={handleChange}
-        onRowDoubleClick={doubleShow}
+        // onRowDoubleClick={onRowDoubleClick}
+        rowSelection={rowSelection}
+        isCompare isfuzzy pagination
+        ajaxUrl={'/user/get/all'}
+        fuzzytip="搜索..."
+        getdataway="result"
+        gettotalway="total"
+        rowKey={record => (record.id)}
+        reload={reload}
+        // advancedQuery={{'pageSize': 10, 'pageNum': 0}}
+        scroll={{ x: true, y: document.body.clientHeight - 345 }}
+        size="small"
+        bordered
+        rowClassName={(record, index) => (index % 2 === 0 ? styles.oddRow : styles.evenRow)}
       />
       <Modal key={moduleUser.userId} title="详细信息" visible={visible} onOk={handleOk} onCancel={handleCancel} moduleUser={moduleUser}>
         <FormItem style={{display:'none'}} {...formItemLayout}>
-          {getFieldDecorator('userId', {
-            initialValue:moduleUser.userId,
+          {getFieldDecorator('id', {
           })( <Input style={{display:'none'}}/>)}
-       </FormItem>
-        <FormItem {...formItemLayout} label="姓名">
-          {getFieldDecorator('name', {
-            initialValue:moduleUser.name,
+        </FormItem>
+        <FormItem {...formItemLayout} label="用户名">
+          {getFieldDecorator('username', {
             rules: [
               {
                 max: 8,
                 message:'姓名长度不能超过8个字符'
-              },
+              },{
+                required: true, message: '请输入用户名！',
+              }
             ],
-          })( <Input placeholder="请输入姓名" style={{width:'150px'}} disabled={disabled}/>)}
-      </FormItem>
-      <FormItem {...formItemLayout} label="密码">
-       {getFieldDecorator('password', {
-          initialValue:moduleUser.password,
-         rules: [{
-           validator:vailedPassword,
-         }, {
-         }],
-       })(
-         <Input type="password" style={{width:'150px'}} disabled={disabled}/>
-       )}
-     </FormItem>
-     <FormItem {...formItemLayout} label="确认密码">
-       {getFieldDecorator('confirm', {
-         rules: [{
-            validator: compareToFirstPassword,
-         }, {
-         }],
-       })(
-         <Input type="password" style={{width:'150px'}} disabled={disabled}
-         />
-       )}
-     </FormItem>
-      <FormItem {...formItemLayout} label="性别">
-        {getFieldDecorator('sex', {
-          initialValue:moduleUser.sex,
-          setFieldsValue:moduleUser.sex,
-          rules: [{
-          }, {
-          }],
-        })(
-          <Select allowClear={true} showSearch style={{width:'150px'}} disabled={disabled} >
-            <Option value="boy">boy</Option>
-            <Option value="girl">girl</Option>
-          </Select>
-        )}
-      </FormItem>
-      <FormItem {...formItemLayout} label="年纪">
-        {getFieldDecorator('age',{
-          initialValue:moduleUser.age,
-          rules:[
-            {
-              type:'number',
-              validator:vailedAge,
+          })( <Input placeholder="请输入用户名" />)}
+        </FormItem>
+        <FormItem label="昵称" {...formItemLayout}>
+          {getFieldDecorator('nickName', {
+            rules: [{
+              required: true, message: '请输入昵称！',
             }
-          ]
-        })(
-          <InputNumber min={1} max={120}  disabled={disabled}/>
-      )}
+            ],
+          })(
+            <Input placeholder="请输入昵称"  />
+          )}
+        </FormItem>
+        <FormItem {...formItemLayout} label="密码">
+          {getFieldDecorator('password', {
+            rules: [{
+              validator:true,
+            }, {
+              required: true, message: '请输入密码！',
+            }],
+          })(
+            <Input placeholder="请输入密码"  type="password" />
+          )}
+        </FormItem>
+        <FormItem {...formItemLayout} label="确认密码">
+          {getFieldDecorator('confirm', {
+            rules: [{
+              validator: compareToFirstPassword,
+            }, {
+              required: true, message: '请再次输入密码！',
+            }],
+          })(
+            <Input placeholder="请再次输入密码"  type="password" />
+          )}
+        </FormItem>
+        <FormItem {...formItemLayout} label="手机号码">
+          {getFieldDecorator('telPhone',{
+            rules:[
+              {
+                validator:vailedPhone,
+              },{
+                required: true, message: '请输入手机号！',
+              }
+            ]
+          })(<Input placeholder="请输入手机号码" />)}
 
-      </FormItem>
-      <FormItem label="出生日期" {...formItemLayout}>
-       <Col span={19}>
-         <FormItem style={{width:"150px"}}>
-           {getFieldDecorator('birth', {
-             initialValue:moment(moduleUser.birth, dateFormat)
-             // setFieldsValue:
-           })(
-              <DatePicker onChange={onChange} disabled={disabled} format={dateFormat} />
-           )}
+        </FormItem>
+        <FormItem
+          {...formItemLayout}
+          label="地址"
+        >
+          {getFieldDecorator('address', {
+            // initialValue: ['江西', '吉安', '遂川'],
+            rules: [{ type: 'array', message: '请选择地址!' }],
+          })(
+            <Cascader options={cities} placeholder="请选择地址" />
+          )}
+        </FormItem>
+        <FormItem {...formItemLayout} label="邮箱">
+          {getFieldDecorator('email',{
+            rules: [{
+              type: 'email', message: '邮箱格式不正确！',
+            }, {
+              // required: true, message: '请输入邮箱！',
+            }],
+          })(
+            <Input placeholder="请输入邮箱" />
+          )}
 
-         </FormItem>
-       </Col>
-     </FormItem>
-      <FormItem {...formItemLayout} label="手机号码">
-        {getFieldDecorator('telPhone',{
-          initialValue:moduleUser.telPhone,
-          rules:[
-            {
-              validator:vailedPhone,
-            }
-          ]
-        })(<Input placeholder="请输入手机号码" style={{width:'150px'}} disabled={disabled}/>)}
-
-      </FormItem>
+        </FormItem>
       </Modal>
     </div>
   );

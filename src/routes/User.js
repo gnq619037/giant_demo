@@ -1,10 +1,15 @@
 import React from 'react';
 import { connect } from 'dva';
 import UserList from '../components/UserList';
-import { Form, Input, Button } from 'antd';
+import { Form, Input, Button, Layout } from 'antd';
 import PropTypes from 'prop-types';
+import styles from './index.less';
+import appStyles from './app.less';
 
 const FormItem = Form.Item;
+const {
+  Header, Footer, Sider, Content,
+} = Layout;
 const User = ({
   dispatch,
   user,
@@ -15,14 +20,14 @@ const User = ({
     resetFields,
   },
 }) => {
-  let {users} = user.users;
+  let {users, cities} = user;
   if(users === undefined){
     users = [];
   }
   function handleDelete(id) {
     dispatch({
       type: 'user/delete',
-      payload: id,
+      payload: {"id": id},
     });
   }
   function searchUser () {
@@ -34,28 +39,41 @@ const User = ({
   }
   function lodingUser (e) {
     resetFields();
-    dispatch({ type: 'user/queryUser', payload: "" })
+    dispatch({ type: 'user/queryUser', payload: {'pageNum':1,'pageSize':10} })
   }
   function loginOut(){
       dispatch({ type: 'user/loginOut'})
   }
+  const freshData = () => {
+    dispatch({
+      type: 'user/updateState',
+      payload: {
+        reload: true,
+      },
+    });
+  };
   return (
-    <div>
-       <Form>
-         <FormItem>
-           {getFieldDecorator('query',{
-
-           })(<Input placeholder="请输入" style={{width:'150px',marginBottom:'15px'}}/>)}
-
-         </FormItem>
-         <FormItem>
-           <Button icon="search" onClick={searchUser}>查询</Button>
-           <Button icon="sync" onClick={lodingUser}>刷新</Button>
-           <Button icon="logout" onClick={loginOut}>登出</Button>
-         </FormItem>
-        </Form>
-      <UserList onDelete={handleDelete} filteredInfo={user.filteredInfo} users={users} moduleUser={user.moduleUser} sortedInfo={user.sortedInfo} visible={user.visible} disabled={user.disabled}/>
-    </div>
+    <Content className={styles.contentContent} style={{ marginTop: -15 }} >
+      <div className={styles.mtitle}>
+        <span>用户信息</span>
+        <div className={appStyles.nav_freshBtn}>
+          <Button style={{ position: 'absolute', marginLeft: 270, marginTop: 41 }} onClick={freshData} />
+        </div>
+      </div>
+      <div className={styles.contentdiv}>
+        <UserList
+          onDelete={handleDelete}
+          filteredInfo={user.filteredInfo}
+          users={users}
+          cities={cities}
+          moduleUser={user.moduleUser}
+          sortedInfo={user.sortedInfo}
+          visible={user.visible}
+          disabled={user.disabled}
+          reload={user.reload}
+        />
+      </div>
+    </Content>
   );
 };
 User.propTypes = {

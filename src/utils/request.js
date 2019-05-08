@@ -29,6 +29,36 @@ export default function request(url, options) {
     .catch(err => ({ err }));
 }
 
+export async function get(url) {
+  const response = await fetch('/giant' + url, {
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      // 'Eccom-Token': window.localStorage.getItem('Eccom-Token'),
+    },
+  });
+
+  const { status } = response;
+  if (status === 401) {
+    window.location.href = '/login';
+    // window.localStorage.removeItem('Eccom-Token');
+  } else {
+    return response.json()
+      .then((json) => {
+        return {
+          fetchSuccess: true,
+          ...json,
+        };
+      }).catch((error) => {
+        return {
+          fetchSuccess: false,
+          statusCode: status,
+          message: error.message,
+        };
+      });
+  }
+}
+
 export async function post(url, params) {
   const response = await fetch('/giant' + url, {
     credentials: 'same-origin',
@@ -57,5 +87,24 @@ export async function post(url, params) {
           message: error.message,
         };
       });
+  }
+}
+
+export async function postJs(url, params) {
+  const response = await fetch('/giant' + url, {
+    credentials: 'same-origin',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // 'Eccom-Token': window.localStorage.getItem('Eccom-Token'),
+    },
+    body: JSON.stringify(params),
+  });
+  const { status } = response;
+  if (status === 401) {
+    window.location.href = '/login';
+    // window.localStorage.removeItem('Eccom-Token');
+  } else {
+    return response.json();
   }
 }

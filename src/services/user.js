@@ -1,13 +1,13 @@
-import {request, post} from '../utils/request';
+import {request, post, get} from '../utils/request';
 
 export function queryUser(data) {
   return post('/user/get/all',data);
 }
 export function addUser(data) {
-  return request('/resource/system/addUser.do?'+data);
+  return post('/user/add', data);
 }
 export function deleteUser(data) {
-  return request('/resource/system/deleteUser.do?userId='+data.userId);
+  return post('/user/delete', data);
 }
 export function updateUser(data) {
   debugger
@@ -18,6 +18,18 @@ export function updateUser(data) {
 export function getLoginUser(data) {
   return post('/user/get', data);
 }
-export function loginOut() {
-  return request('/resource/system/loginOut.do');
+export function loginOut(data) {
+  return post('/user/logout', data);
+}
+
+export function findAllCity(){
+  return get('/city/all');
+}
+
+export function addFriend(data) {
+  return post('/graph/user/relation/family', data);
+}
+
+export function getGraphUser(data) {
+  return post('/graph/user/get', data);
 }
